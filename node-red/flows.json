@@ -1,0 +1,757 @@
+[
+    {
+        "id": "tab1",
+        "type": "tab",
+        "label": "Kho bãi - chiếu sáng",
+        "disabled": false,
+        "info": "ESP32 -> MQTT -> Node-RED -> Blynk + Dashboard (/ui). Biến môi trường: BLYNK_TOKEN, LAMP_W (mặc định 150)."
+    },
+    {
+        "id": "b1",
+        "type": "mqtt-broker",
+        "name": "Broker",
+        "broker": "localhost",
+        "port": "1883",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true
+    },
+    {
+        "id": "ub",
+        "type": "ui_base",
+        "theme": {
+            "name": "theme-light",
+            "lightTheme": {
+                "default": "#0094CE",
+                "baseColor": "#0094CE",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,sans-serif",
+                "edited": false,
+                "reset": false
+            },
+            "darkTheme": {
+                "default": "#097479",
+                "baseColor": "#097479",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,sans-serif",
+                "edited": false,
+                "reset": false
+            },
+            "customTheme": {
+                "name": "Untitled Theme 1",
+                "default": "#4B7930",
+                "baseColor": "#4B7930",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,sans-serif"
+            },
+            "themeState": {
+                "base-color": {
+                    "default": "#0094CE",
+                    "value": "#0094CE",
+                    "edited": false
+                },
+                "page-titlebar-backgroundColor": {
+                    "value": "#0094CE",
+                    "edited": false
+                },
+                "page-backgroundColor": {
+                    "value": "#fafafa",
+                    "edited": false
+                },
+                "page-sidebar-backgroundColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "group-textColor": {
+                    "value": "#1bbfff",
+                    "edited": false
+                },
+                "group-borderColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "group-backgroundColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "widget-textColor": {
+                    "value": "#111111",
+                    "edited": false
+                },
+                "widget-backgroundColor": {
+                    "value": "#0094ce",
+                    "edited": false
+                },
+                "widget-borderColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "base-font": {
+                    "value": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,sans-serif"
+                }
+            },
+            "angularTheme": {
+                "primary": "indigo",
+                "accents": "blue",
+                "warn": "red",
+                "background": "grey",
+                "palette": "light"
+            }
+        },
+        "site": {
+            "name": "Kho bãi - chiếu sáng",
+            "hideToolbar": "false",
+            "allowSwipe": "false",
+            "lockMenu": "false",
+            "allowTempTheme": "true",
+            "dateFormat": "DD/MM/YYYY",
+            "sizes": {
+                "sx": 48,
+                "sy": 48,
+                "gx": 6,
+                "gy": 6,
+                "cx": 6,
+                "cy": 6,
+                "px": 0,
+                "py": 0
+            }
+        }
+    },
+    {
+        "id": "ut",
+        "type": "ui_tab",
+        "name": "Kho bãi",
+        "icon": "dashboard",
+        "order": 1,
+        "disabled": false,
+        "hidden": false
+    },
+    {
+        "id": "ug1",
+        "type": "ui_group",
+        "name": "Phân khu",
+        "tab": "ut",
+        "order": 1,
+        "disp": true,
+        "width": "6",
+        "collapse": false
+    },
+    {
+        "id": "ug2",
+        "type": "ui_group",
+        "name": "Tiết kiệm năng lượng",
+        "tab": "ut",
+        "order": 2,
+        "disp": true,
+        "width": "6",
+        "collapse": false
+    },
+    {
+        "id": "ug3",
+        "type": "ui_group",
+        "name": "Điều khiển",
+        "tab": "ut",
+        "order": 3,
+        "disp": true,
+        "width": "6",
+        "collapse": false
+    },
+    {
+        "id": "m1",
+        "type": "mqtt in",
+        "z": "tab1",
+        "name": "kho/#",
+        "topic": "kho/#",
+        "qos": "1",
+        "datatype": "auto-detect",
+        "broker": "b1",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 100,
+        "y": 160,
+        "wires": [
+            [
+                "f1"
+            ]
+        ]
+    },
+    {
+        "id": "f1",
+        "type": "function",
+        "z": "tab1",
+        "name": "cập nhật trạng thái",
+        "func": "const t = msg.topic, p = msg.payload;\n  const s = flow.get('s') || { A: {}, B: {}, C: {} };\n  if (t === 'kho/status') s.online = String(p) === 'online';\n  else if (/^kho\\/zone\\/[ABC]$/.test(t)) s[t.slice(-1)] = (p && typeof p === 'object') ? p : {};\n  else return null;\n  flow.set('s', s);\n\n  const Z = [s.A, s.B, s.C];\n  const on = Z.filter(z => z.on).length;\n  const txt = z => s.online === false ? 'Không rõ' : z.on ? (z.pir ? 'SÁNG (có xe nâng)' : 'SÁNG (giữ đèn)') : 'Tắt';\n  const status = s.online === undefined ? 'Chờ ESP32...' : s.online ? 'ESP32 online' : 'ESP32 OFFLINE - mất kết nối';\n  return [{ payload: txt(Z[0]) }, { payload: txt(Z[1]) }, { payload: txt(Z[2]) },\n{ payload: Math.round((3 - on) / 3 * 100) }, { payload: on }, { payload: status }, {}];",
+        "outputs": 7,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 300,
+        "y": 160,
+        "wires": [
+            [
+                "tA"
+            ],
+            [
+                "tB"
+            ],
+            [
+                "tC"
+            ],
+            [
+                "gauge"
+            ],
+            [
+                "chart"
+            ],
+            [
+                "tStatus"
+            ],
+            [
+                "d1"
+            ]
+        ]
+    },
+    {
+        "id": "tA",
+        "type": "ui_text",
+        "z": "tab1",
+        "group": "ug1",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Khu A",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "className": "",
+        "x": 540,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "tB",
+        "type": "ui_text",
+        "z": "tab1",
+        "group": "ug1",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Khu B",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "className": "",
+        "x": 540,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "tC",
+        "type": "ui_text",
+        "z": "tab1",
+        "group": "ug1",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Khu C",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "className": "",
+        "x": 540,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "gauge",
+        "type": "ui_gauge",
+        "z": "tab1",
+        "name": "",
+        "group": "ug2",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "Tiết kiệm lúc này",
+        "label": "%",
+        "format": "{{value}}",
+        "min": 0,
+        "max": 100,
+        "colors": [
+            "#ca3838",
+            "#e6e600",
+            "#3fb43f"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 540,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "chart",
+        "type": "ui_chart",
+        "z": "tab1",
+        "name": "",
+        "group": "ug2",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "label": "Số khu đang sáng",
+        "chartType": "line",
+        "legend": "false",
+        "xformat": "HH:mm:ss",
+        "interpolate": "step",
+        "nodata": "Chưa có dữ liệu",
+        "dot": false,
+        "ymin": "0",
+        "ymax": "3",
+        "removeOlder": 1,
+        "removeOlderPoints": "",
+        "removeOlderUnit": "3600",
+        "cutout": 0,
+        "useOneColor": false,
+        "useUTC": false,
+        "colors": [
+            "#1f77b4",
+            "#aec7e8",
+            "#ff7f0e",
+            "#2ca02c",
+            "#98df8a",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "outputs": 1,
+        "useDifferentColor": false,
+        "className": "",
+        "x": 540,
+        "y": 200,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "tStatus",
+        "type": "ui_text",
+        "z": "tab1",
+        "group": "ug3",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Thiết bị",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "className": "",
+        "x": 540,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "iE",
+        "type": "inject",
+        "z": "tab1",
+        "name": "mỗi 30s",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "30",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 100,
+        "y": 360,
+        "wires": [
+            [
+                "f2"
+            ]
+        ]
+    },
+    {
+        "id": "f2",
+        "type": "function",
+        "z": "tab1",
+        "name": "tính điện năng",
+        "func": "const s = flow.get('s') || {};\n  const now = Date.now();\n  const e = flow.get('e') || { used: 0, base: 0 };\n  // chi cong don khi ESP32 online va khoang cach hop ly (tranh cong don luc Node-RED tat)\n  if (e.t && s.online && now - e.t < 120000) {\nconst kwh = (now - e.t) / 3.6e9 * (Number(env.get('LAMP_W')) || 150); // kWh moi khu\ne.used += ['A', 'B', 'C'].filter(k => s[k] && s[k].on).length * kwh;\ne.base += 3 * kwh; // moc so sanh: ca 3 khu sang lien tuc\n  }\n  e.t = now;\n  flow.set('e', e);\n  const saved = e.base - e.used;\n  const pct = e.base ? Math.round(saved / e.base * 100) : 0;\n  return [{ payload: 'Dùng ' + e.used.toFixed(2) + ' kWh · tiết kiệm ' + saved.toFixed(2) + ' kWh (' + pct + '%)' }, {}];",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 300,
+        "y": 360,
+        "wires": [
+            [
+                "tEnergy"
+            ],
+            [
+                "d1"
+            ]
+        ]
+    },
+    {
+        "id": "tEnergy",
+        "type": "ui_text",
+        "z": "tab1",
+        "group": "ug2",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Điện năng",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "className": "",
+        "x": 540,
+        "y": 360,
+        "wires": []
+    },
+    {
+        "id": "d1",
+        "type": "delay",
+        "z": "tab1",
+        "name": "tối đa 1 req/s",
+        "pauseType": "rate",
+        "timeout": "5",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 300,
+        "y": 460,
+        "wires": [
+            [
+                "f3"
+            ]
+        ]
+    },
+    {
+        "id": "f3",
+        "type": "function",
+        "z": "tab1",
+        "name": "URL Blynk",
+        "func": "const token = env.get('BLYNK_TOKEN');\n  if (!token) { node.status({ fill: 'red', shape: 'ring', text: 'thiếu BLYNK_TOKEN' }); return null; }\n  node.status({});\n  const s = flow.get('s') || {}, e = flow.get('e') || { used: 0, base: 0 };\n  const on = ['A', 'B', 'C'].map(k => (s[k] && s[k].on ? 1 : 0));\n  const pins = {\nV0: on[0], V1: on[1], V2: on[2], V3: s.online ? 1 : 0,\nV4: Math.round((3 - on[0] - on[1] - on[2]) / 3 * 100),\nV5: e.used.toFixed(3), V6: (e.base - e.used).toFixed(3)\n  };\n  msg.url = 'https://blynk.cloud/external/api/batch/update?token=' + token + '&' +\nObject.entries(pins).map(([k, v]) => k + '=' + v).join('&');\n  return msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 480,
+        "y": 460,
+        "wires": [
+            [
+                "h1"
+            ]
+        ]
+    },
+    {
+        "id": "h1",
+        "type": "http request",
+        "z": "tab1",
+        "name": "Blynk",
+        "method": "GET",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "x": 650,
+        "y": 460,
+        "wires": [
+            [
+                "g1"
+            ]
+        ]
+    },
+    {
+        "id": "g1",
+        "type": "debug",
+        "z": "tab1",
+        "name": "Blynk status",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": true,
+        "complete": "statusCode",
+        "targetType": "msg",
+        "statusVal": "statusCode",
+        "statusType": "auto",
+        "x": 820,
+        "y": 460,
+        "wires": []
+    },
+    {
+        "id": "iP",
+        "type": "inject",
+        "z": "tab1",
+        "name": "poll Blynk V10 / 5s",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "5",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 100,
+        "y": 560,
+        "wires": [
+            [
+                "f4"
+            ]
+        ]
+    },
+    {
+        "id": "f4",
+        "type": "function",
+        "z": "tab1",
+        "name": "URL get V10",
+        "func": "const token = env.get('BLYNK_TOKEN');\n  if (!token) return null;\n  msg.url = 'https://blynk.cloud/external/api/get?token=' + token + '&V10';\n  return msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 300,
+        "y": 560,
+        "wires": [
+            [
+                "h2"
+            ]
+        ]
+    },
+    {
+        "id": "h2",
+        "type": "http request",
+        "z": "tab1",
+        "name": "Blynk get",
+        "method": "GET",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "x": 460,
+        "y": 560,
+        "wires": [
+            [
+                "f5"
+            ]
+        ]
+    },
+    {
+        "id": "f5",
+        "type": "function",
+        "z": "tab1",
+        "name": "0/1/2 -> auto/on/off",
+        "func": "const m = { 0: 'auto', 1: 'on', 2: 'off' }[String(msg.payload).trim()];\n  if (!m) return null;\n  msg.payload = m;\n  return msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 640,
+        "y": 560,
+        "wires": [
+            [
+                "rbe"
+            ]
+        ]
+    },
+    {
+        "id": "rbe",
+        "type": "rbe",
+        "z": "tab1",
+        "name": "chỉ khi đổi",
+        "func": "rbe",
+        "gap": "",
+        "start": "",
+        "inout": "out",
+        "septopics": false,
+        "property": "payload",
+        "topi": "topic",
+        "x": 830,
+        "y": 560,
+        "wires": [
+            [
+                "mqCmd"
+            ]
+        ]
+    },
+    {
+        "id": "dd",
+        "type": "ui_dropdown",
+        "z": "tab1",
+        "name": "",
+        "label": "Chế độ",
+        "tooltip": "",
+        "place": "Chọn",
+        "group": "ug3",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "multiple": false,
+        "options": [
+            {
+                "label": "Tự động (theo xe nâng)",
+                "value": "auto",
+                "type": "str"
+            },
+            {
+                "label": "Bật tất cả",
+                "value": "on",
+                "type": "str"
+            },
+            {
+                "label": "Tắt tất cả",
+                "value": "off",
+                "type": "str"
+            }
+        ],
+        "payload": "",
+        "topic": "topic",
+        "topicType": "msg",
+        "className": "",
+        "x": 540,
+        "y": 620,
+        "wires": [
+            [
+                "mqCmd"
+            ]
+        ]
+    },
+    {
+        "id": "mqCmd",
+        "type": "mqtt out",
+        "z": "tab1",
+        "name": "kho/cmd/mode",
+        "topic": "kho/cmd/mode",
+        "qos": "1",
+        "retain": "true",
+        "respTopicType": "str",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "b1",
+        "x": 1030,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "iS",
+        "type": "inject",
+        "z": "tab1",
+        "name": "MÔ PHỎNG ESP32: xe nâng / 3s",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "3",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 100,
+        "y": 700,
+        "wires": [
+            [
+                "f6"
+            ]
+        ]
+    },
+    {
+        "id": "mSim",
+        "type": "mqtt in",
+        "z": "tab1",
+        "name": "kho/cmd/mode (cho mô phỏng)",
+        "topic": "kho/cmd/mode",
+        "qos": "1",
+        "datatype": "auto-detect",
+        "broker": "b1",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 130,
+        "y": 760,
+        "wires": [
+            [
+                "f6"
+            ]
+        ]
+    },
+    {
+        "id": "f6",
+        "type": "function",
+        "z": "tab1",
+        "name": "xe nâng giả",
+        "func": "// đóng vai ESP32: nhận kho/cmd/mode, mỗi 3s xe nâng giả đi A -> B -> C -> không có xe\n  if (msg.topic === 'kho/cmd/mode') flow.set('simMode', String(msg.payload));\n  else flow.set('pos', ((flow.get('pos') ?? -1) + 1) % 4);\n  const mode = flow.get('simMode') || 'auto', p = flow.get('pos') ?? 3;\n  const on = i => mode === 'on' ? 1 : mode === 'off' ? 0 : +(i === p);\n  return [[{ topic: 'kho/status', payload: 'online', retain: true }].concat(['A', 'B', 'C'].map((k, i) =>\n({ topic: 'kho/zone/' + k, payload: { pir: +(i === p), on: on(i) }, retain: true })))];",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 300,
+        "y": 700,
+        "wires": [
+            [
+                "mqSim"
+            ]
+        ]
+    },
+    {
+        "id": "mqSim",
+        "type": "mqtt out",
+        "z": "tab1",
+        "name": "(theo msg.topic)",
+        "topic": "",
+        "qos": "0",
+        "retain": "false",
+        "respTopicType": "str",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "b1",
+        "x": 520,
+        "y": 700,
+        "wires": []
+    }
+]

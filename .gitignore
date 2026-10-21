@@ -1,0 +1,19 @@
+# build / công cụ
+.pio/
+.vscode/
+.claude/
+.DS_Store
+
+# Node-RED: dữ liệu runtime, log, tài khoản, thư viện (cài lại bằng npm install)
+node-red/.data/
+node-red/.flows.json.backup
+node-red/.env
+node-red/node_modules/
+
+# bí mật
+.env
+*.env.local
+
+# mẫu slide của trường (không phân phối lại)
+vie_16x9_slide-nhan-dien-huit.pptx
+docs/vie_16x9_slide-nhan-dien-huit.pptx

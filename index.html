@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kho bãi thông minh</title>
+<style>
+:root{
+  --bg:#0b1020;--card:#121a2e;--card2:#18223b;--line:#25314f;
+  --text:#e6ecf8;--muted:#93a0bd;
+  --primary:#fbbf24;--primary-ink:#1a1405;
+  --ok:#34d399;--warn:#fbbf24;--err:#f87171;--info:#60a5fa;
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;
+}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
+button,input{font:inherit;color:inherit}
+header{display:flex;flex-wrap:wrap;gap:var(--s3);align-items:center;justify-content:space-between;padding:var(--s4) var(--s5);border-bottom:1px solid var(--line)}
+h1{font-size:18px;line-height:1.3}
+h1 small{display:block;font-size:12px;font-weight:400;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center}
+main{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s4);padding:var(--s4) var(--s5);max-width:1800px;margin:0 auto}
+main>.col:last-child{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);align-items:start}
+#cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.zg{grid-template-columns:1fr!important}
+.col{display:flex;flex-direction:column;gap:var(--s4);min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:var(--s4)}
+.lbl{font-size:12px;color:var(--muted)}
+
+/* buttons */
+.btn{min-height:44px;padding:0 var(--s4);border-radius:8px;border:1px solid var(--line);background:var(--card2);cursor:pointer;transition:background .15s,border-color .15s,transform .1s}
+.btn:hover{border-color:#3b4d78;background:#1e2a47}
+.btn:active{transform:scale(.97)}
+.btn:focus-visible,input:focus-visible,svg:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+.btn[aria-pressed=true],.seg .btn.on{background:var(--primary);border-color:var(--primary);color:var(--primary-ink);font-weight:600}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.seg{display:flex;gap:var(--s1);background:var(--bg);padding:var(--s1);border-radius:10px;border:1px solid var(--line)}
+.seg .btn{border-color:transparent;background:transparent}
+
+/* connection pill */
+.pill{display:inline-flex;align-items:center;gap:var(--s2);min-height:44px;padding:0 var(--s3);border-radius:999px;border:1px solid var(--line);background:var(--card)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--info)}
+.dot.ok{background:var(--ok)}.dot.wait{background:var(--warn)}.dot.err{background:var(--err)}
+
+/* map */
+.mapbar{display:flex;flex-wrap:wrap;gap:var(--s3);align-items:center;justify-content:space-between;margin-bottom:var(--s3)}
+#map{width:100%;height:auto;max-height:calc(100vh - 190px);display:block;border-radius:8px;background:#0e1527;touch-action:none;cursor:grab}
+#map:active{cursor:grabbing}
+.floor{fill:#161f36}.road{fill:#1f2b4a}
+.rack{fill:#3a4a70;stroke:#5a6d99;stroke-width:1.5}
+.dim{fill:#030712;opacity:.74;transition:opacity .3s}
+.glow{opacity:0;transition:opacity .3s}
+.strip{stroke:#475569;stroke-width:4;stroke-linecap:round;transition:stroke .3s}
+.z.on .dim{opacity:0}.z.on .glow{opacity:1}
+.z.on .strip{stroke:#fde68a;filter:drop-shadow(0 0 5px #fbbf24)}
+.range{fill:none;stroke:#fbbf24;stroke-opacity:.22;stroke-dasharray:4 6;transition:fill-opacity .2s,stroke-opacity .2s}
+.z.pir .range{fill:#fbbf24;fill-opacity:.08;stroke-opacity:.7}
+.sdot{fill:#64748b}.z.pir .sdot{fill:var(--err)}
+.ring{fill:none;stroke:var(--err);opacity:0;transform-box:fill-box;transform-origin:center}
+.z.pir .ring{animation:pulse 1s ease-out infinite}
+@keyframes pulse{from{transform:scale(1);opacity:.9}to{transform:scale(3.5);opacity:0}}
+.zl{fill:var(--text);font-weight:700;font-size:13px;text-anchor:middle;letter-spacing:.12em}
+.zs{fill:var(--muted);font-size:11px;text-anchor:middle}
+.sep{stroke:#2c3a5e;stroke-dasharray:3 5}
+#fk{transition:opacity .3s}
+
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--s3)}
+.kpi b{display:block;font-size:28px;line-height:1.2;font-variant-numeric:tabular-nums}
+.kpi.save b{color:var(--ok)}
+.kpi small{font-size:12px;color:var(--muted)}
+
+/* zones */
+.zc{display:grid;grid-template-columns:4px 1fr;gap:var(--s3);padding:0;overflow:hidden}
+.zc>i{background:var(--line);transition:background .3s}
+.zc.on>i{background:var(--primary)}
+.zc>div{padding:var(--s3) var(--s4) var(--s3) 0}
+.zc header{padding:0;border:0;margin-bottom:var(--s2)}
+.zc strong{font-size:15px}
+.badge{font-size:12px;font-weight:600;padding:2px var(--s2);border-radius:6px;background:var(--card2);color:var(--muted)}
+.zc.on .badge{background:var(--primary);color:var(--primary-ink)}
+.zg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--s2)}
+.zg b{display:block;font-size:15px}
+.zg .hit{color:var(--err)}
+
+/* log */
+#log{list-style:none;padding:0;max-height:260px;overflow:auto;font-size:13px}
+#log li{display:flex;gap:var(--s2);padding:var(--s1) 0;border-bottom:1px solid var(--line)}
+#log time{color:var(--muted);font-variant-numeric:tabular-nums;flex:none}
+#log .err{color:var(--err)}#log .on{color:var(--primary)}#log .pir{color:#fca5a5}
+
+dialog{background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:var(--s5);width:min(420px,92vw)}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+dialog label{display:block;margin-top:var(--s3)}
+dialog input{width:100%;min-height:44px;margin-top:var(--s1);padding:0 var(--s3);border-radius:8px;border:1px solid var(--line);background:var(--bg)}
+dialog .row{margin-top:var(--s5);justify-content:flex-end}
+
+@media(max-width:900px){main{padding:var(--s3)}main>.col:last-child,#cards{grid-template-columns:1fr}header{padding:var(--s3)}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Chiếu sáng kho bãi thông minh<small>ESP32 → MQTT → Node-RED → Blynk · 3 PIR · 3 Relay</small></h1>
+  <div class="row">
+    <div class="seg" role="group" aria-label="Nguồn dữ liệu">
+      <button class="btn" data-mode="sim">Mô phỏng</button>
+      <button class="btn" data-mode="live">Live MQTT</button>
+    </div>
+    <span class="pill"><span class="dot" id="cdot"></span><span id="ctext"></span></span>
+    <button class="btn" id="cfgBtn" aria-label="Cài đặt">⚙ Cài đặt</button>
+  </div>
+</header>
+
+<main>
+  <div class="col">
+    <section class="card">
+      <div class="mapbar">
+        <div class="seg" role="group" aria-label="Chế độ đèn">
+          <button class="btn" data-cmd="auto">Tự động (PIR)</button>
+          <button class="btn" data-cmd="on">Bật hết</button>
+          <button class="btn" data-cmd="off">Tắt hết</button>
+        </div>
+        <div class="row">
+          <span class="lbl" id="hint">Kéo/chạm trên bản đồ để di chuyển xe nâng</span>
+          <button class="btn" id="autoBtn" aria-pressed="true">Xe nâng tự chạy</button>
+        </div>
+      </div>
+      <svg id="map" viewBox="0 0 900 340" role="img" aria-label="Sơ đồ kho bãi 3 phân khu"></svg>
+    </section>
+
+    <section class="kpis">
+      <div class="card kpi"><span class="lbl">Công suất hiện tại</span><b id="kP">0 W</b><small id="kOn">0/3 khu sáng</small></div>
+      <div class="card kpi"><span class="lbl">Điện năng đã dùng</span><b id="kU">0.00</b><small>Wh</small></div>
+      <div class="card kpi"><span class="lbl">Nếu bật liên tục</span><b id="kB">0.00</b><small>Wh</small></div>
+      <div class="card kpi save"><span class="lbl">Tiết kiệm</span><b id="kS">0%</b><small><a href="#" id="reset" style="color:inherit">đặt lại bộ đếm</a></small></div>
+    </section>
+  </div>
+
+  <div class="col">
+    <div id="cards" class="col"></div>
+    <section class="card">
+      <span class="lbl">Nhật ký sự kiện</span>
+      <ul id="log"></ul>
+    </section>
+  </div>
+</main>
+
+<dialog id="dlg">
+  <form method="dialog" id="form">
+    <h1>Cài đặt</h1>
+    <label>Broker MQTT (WebSocket)<input name="url" placeholder="ws://localhost:9001" required></label>
+    <label>Công suất mỗi khu (W)<input name="watt" type="number" min="1" required></label>
+    <label>Thời gian giữ đèn – chế độ mô phỏng (giây)<input name="hold" type="number" min="1" required></label>
+    <div class="row"><button class="btn" value="cancel" formnovalidate>Hủy</button><button class="btn" style="background:var(--primary);color:var(--primary-ink)" value="ok">Lưu</button></div>
+  </form>
+</dialog>
+
+<script src="mqtt.min.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const ZN = ['A', 'B', 'C'], PIN = [[34, 25], [35, 26], [32, 27]];
+const ZW = 300, SY = 122, RANGE = 170;                // bề rộng khu, vị trí PIR, tầm PIR (đơn vị SVG)
+const lim = (v, a, b) => Math.min(b, Math.max(a, v));
+// ponytail: cấu hình lưu localStorage, hỏng thì dùng mặc định
+const cfg = { url: 'ws://localhost:9001', watt: 150, hold: 3, mode: 'sim', ...(() => { try { return JSON.parse(localStorage.kho) } catch { return {} } })() };
+const save = () => { try { localStorage.kho = JSON.stringify(cfg) } catch {} };
+
+let zs, cmd = 'auto', auto = true, esp = null, conn = 'off', client = null;
+let e = { used: 0, base: 0 };
+const fk = { x: 40, y: 170, dir: 1, wait: 0, show: true };
+
+/* ---------- vẽ bản đồ ---------- */
+let h = '<defs><radialGradient id="g"><stop offset="0" stop-color="#fde68a" stop-opacity=".5"/><stop offset="1" stop-color="#fde68a" stop-opacity="0"/></radialGradient></defs>';
+ZN.forEach((n, i) => {
+  const x = i * ZW, cx = x + ZW / 2;
+  h += `<g class="z" id="z${i}"><rect class="floor" x="${x}" width="${ZW}" height="340"/><rect class="road" x="${x}" y="130" width="${ZW}" height="80"/>
+    <line x1="${x}" y1="170" x2="${x + ZW}" y2="170" stroke="#facc15" stroke-opacity=".35" stroke-dasharray="14 12"/>`
+    + [25, 115, 205].map(d => `<rect class="rack" x="${x + d}" y="30" width="70" height="72" rx="4"/><rect class="rack" x="${x + d}" y="238" width="70" height="72" rx="4"/>`).join('')
+    + `<rect class="glow" x="${x}" width="${ZW}" height="340" fill="url(#g)"/><rect class="dim" x="${x}" width="${ZW}" height="340"/>
+    <line class="strip" x1="${x + 20}" y1="112" x2="${x + ZW - 20}" y2="112"/><line class="strip" x1="${x + 20}" y1="228" x2="${x + ZW - 20}" y2="228"/>
+    <circle class="range" cx="${cx}" cy="${SY}" r="${RANGE}"/><circle class="ring" cx="${cx}" cy="${SY}" r="7"/><circle class="sdot" cx="${cx}" cy="${SY}" r="6"/>
+    <text class="zl" x="${cx}" y="18">KHU ${n}</text><text class="zs" x="${cx}" y="334">PIR GPIO${PIN[i][0]} · Relay GPIO${PIN[i][1]}</text></g>`;
+});
+h += `<line class="sep" x1="300" y1="0" x2="300" y2="340"/><line class="sep" x1="600" y1="0" x2="600" y2="340"/>
+  <g id="fk"><g id="fkd"><rect x="-18" y="-10" width="30" height="20" rx="4" fill="#f59e0b"/><rect x="-13" y="-6" width="11" height="12" rx="2" fill="#1f2937"/>
+  <rect x="12" y="-8" width="18" height="3" fill="#cbd5e1"/><rect x="12" y="5" width="18" height="3" fill="#cbd5e1"/>
+  <circle cx="-10" cy="-11" r="3.5" fill="#0f172a"/><circle cx="-10" cy="11" r="3.5" fill="#0f172a"/><circle cx="7" cy="-11" r="3.5" fill="#0f172a"/><circle cx="7" cy="11" r="3.5" fill="#0f172a"/></g></g>`;
+$('#map').innerHTML = h;
+
+$('#cards').innerHTML = ZN.map((n, i) => `<div class="card zc" id="c${i}"><i></i><div>
+  <header><strong>Khu ${n}</strong><span class="badge">TẮT</span></header>
+  <div class="zg"><div><span class="lbl">PIR · GPIO${PIN[i][0]}</span><b class="p">Không có xe</b></div>
+  <div><span class="lbl">Relay · GPIO${PIN[i][1]}</span><b class="r">OFF</b></div>
+  <div><span class="lbl">Công suất</span><b class="w">0 W</b></div></div></div></div>`).join('');
+
+/* ---------- trạng thái + nhật ký ---------- */
+const log = (msg, cls = '') => {
+  const li = document.createElement('li');
+  li.innerHTML = `<time>${new Date().toLocaleTimeString('vi-VN')}</time><span class="${cls}"></span>`;
+  li.lastChild.textContent = msg;
+  $('#log').prepend(li);
+  while ($('#log').children.length > 60) $('#log').lastChild.remove();
+};
+const resetZones = () => { zs = ZN.map(() => ({ pir: false, on: false, seen: -1e9 })); };
+const setZ = (i, pir, on) => {
+  const z = zs[i];
+  if (pir !== z.pir) log(`Khu ${ZN[i]}: ${pir ? 'phát hiện xe nâng (PIR)' : 'xe nâng rời khu'}`, 'pir');
+  if (on !== z.on) log(`Khu ${ZN[i]}: relay ${on ? 'BẬT – đèn sáng' : 'TẮT – đèn tắt'}`, 'on');
+  z.pir = pir; z.on = on;
+};
+
+/* ---------- mô phỏng ---------- */
+function simStep(dt, t) {
+  if (auto) {
+    if (fk.wait > 0) fk.wait -= dt;
+    else {
+      fk.x += fk.dir * 100 * dt;
+      if (fk.x >= 870 || fk.x <= 30) { fk.x = lim(fk.x, 30, 870); fk.dir *= -1; fk.wait = 1.2; }
+    }
+  }
+  zs.forEach((z, i) => {
+    const pir = Math.hypot(fk.x - (i * ZW + ZW / 2), fk.y - SY) < RANGE;
+    if (pir) z.seen = t;
+    setZ(i, pir, cmd === 'on' || (cmd === 'auto' && t - z.seen < cfg.hold));
+  });
+}
+
+/* ---------- live MQTT (topic theo esp32/src/main.cpp) ---------- */
+function liveStep(dt) {
+  const hit = zs.map((z, i) => z.pir ? i * ZW + ZW / 2 : null).filter(v => v !== null);
+  fk.show = hit.length > 0;
+  if (!fk.show) return;
+  const tx = hit.reduce((a, b) => a + b) / hit.length;
+  fk.dir = tx >= fk.x ? 1 : -1;
+  fk.x += (tx - fk.x) * Math.min(1, dt * 4);
+}
+function connect() {
+  disconnect();
+  conn = 'wait'; esp = null;
+  client = mqtt.connect(cfg.url, { reconnectPeriod: 3000, connectTimeout: 5000, clientId: 'web-' + Math.random().toString(16).slice(2, 8) });
+  client.on('connect', () => { conn = 'ok'; client.subscribe('kho/#', { qos: 1 }); log('Đã kết nối broker ' + cfg.url); });
+  client.on('reconnect', () => { conn = 'wait'; });
+  client.on('close', () => { if (conn === 'ok') log('Mất kết nối broker', 'err'); conn = 'wait'; });
+  client.on('error', er => { conn = 'err'; log('Lỗi MQTT: ' + er.message, 'err'); });
+  client.on('message', (t, p) => {
+    const s = p.toString();
+    if (t === 'kho/status') { esp = s === 'online'; log('ESP32 ' + (esp ? 'online' : 'OFFLINE'), esp ? '' : 'err'); return; }
+    const m = t.match(/^kho\/zone\/([ABC])$/);
+    if (!m) return;
+    try { const j = JSON.parse(s); setZ(m[1].charCodeAt(0) - 65, !!+j.pir, !!+j.on); } catch { log('Payload lỗi ở ' + t + ': ' + s, 'err'); }
+  });
+}
+function disconnect() { if (client) { client.end(true); client = null; } conn = 'off'; }
+
+/* ---------- vòng lặp ---------- */
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  cfg.mode === 'sim' ? simStep(dt, now / 1000) : liveStep(dt);
+  const on = zs.filter(z => z.on).length, live = cfg.mode === 'sim' || (conn === 'ok' && esp !== false);
+  if (live) { e.used += on * cfg.watt * dt / 3600; e.base += 3 * cfg.watt * dt / 3600; }
+
+  zs.forEach((z, i) => {
+    $('#z' + i).classList.toggle('on', z.on); $('#z' + i).classList.toggle('pir', z.pir);
+    const c = $('#c' + i); c.classList.toggle('on', z.on);
+    c.querySelector('.badge').textContent = z.on ? 'ĐANG SÁNG' : 'TẮT';
+    const p = c.querySelector('.p'); p.textContent = z.pir ? 'Có xe nâng' : 'Không có xe'; p.classList.toggle('hit', z.pir);
+    c.querySelector('.r').textContent = z.on ? 'ON' : 'OFF';
+    c.querySelector('.w').textContent = (z.on ? cfg.watt : 0) + ' W';
+  });
+  $('#fk').setAttribute('transform', `translate(${fk.x.toFixed(1)} ${fk.y})`);
+  $('#fk').style.opacity = fk.show ? 1 : 0;
+  $('#fkd').setAttribute('transform', `scale(${fk.dir} 1)`);
+  $('#kP').textContent = on * cfg.watt + ' W';
+  $('#kOn').textContent = `${on}/3 khu sáng`;
+  $('#kU').textContent = e.used.toFixed(2);
+  $('#kB').textContent = e.base.toFixed(2);
+  $('#kS').textContent = (e.base ? Math.round((1 - e.used / e.base) * 100) : 0) + '%';
+  requestAnimationFrame(frame);
+}
+
+/* ---------- giao diện ---------- */
+function paint() {
+  document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === cfg.mode));
+  document.querySelectorAll('[data-cmd]').forEach(b => b.classList.toggle('on', b.dataset.cmd === cmd));
+  $('#autoBtn').hidden = cfg.mode !== 'sim';
+  $('#autoBtn').setAttribute('aria-pressed', auto);
+  $('#hint').textContent = cfg.mode === 'sim' ? 'Kéo/chạm trên bản đồ để di chuyển xe nâng' : 'Dữ liệu thật từ ESP32 – xe nâng hiển thị theo PIR';
+  const [cls, txt] = cfg.mode === 'sim' ? ['', 'Đang mô phỏng']
+    : conn === 'ok' ? [esp === false ? 'err' : 'ok', esp === null ? 'MQTT · chờ ESP32…' : esp ? 'MQTT · ESP32 online' : 'MQTT · ESP32 OFFLINE']
+    : conn === 'err' ? ['err', 'Lỗi kết nối broker'] : ['wait', 'Đang kết nối broker…'];
+  $('#cdot').className = 'dot ' + cls;
+  $('#ctext').textContent = txt;
+}
+setInterval(paint, 300);
+
+function setMode(m) {
+  cfg.mode = m; save(); resetZones(); cmd = 'auto'; fk.show = m === 'sim';
+  m === 'live' ? connect() : disconnect();
+  log(m === 'sim' ? 'Chuyển sang chế độ mô phỏng' : 'Chuyển sang Live MQTT'); paint();
+}
+document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => b.dataset.mode !== cfg.mode && setMode(b.dataset.mode));
+document.querySelectorAll('[data-cmd]').forEach(b => b.onclick = () => {
+  cmd = b.dataset.cmd;
+  if (cfg.mode === 'live') {
+    if (client && conn === 'ok') client.publish('kho/cmd/mode', cmd, { qos: 1 }); else log('Chưa kết nối broker – không gửi được lệnh', 'err');
+  }
+  log('Chế độ đèn: ' + b.textContent); paint();
+});
+$('#autoBtn').onclick = () => { auto = !auto; paint(); };
+$('#reset').onclick = ev => { ev.preventDefault(); e = { used: 0, base: 0 }; };
+
+const svg = $('#map'); let drag = false;
+const move = ev => {
+  const p = svg.createSVGPoint(); p.x = ev.clientX; p.y = ev.clientY;
+  const q = p.matrixTransform(svg.getScreenCTM().inverse()), nx = lim(q.x, 20, 880);
+  if (Math.abs(nx - fk.x) > .5) fk.dir = nx > fk.x ? 1 : -1;
+  fk.x = nx; fk.y = lim(q.y, 140, 200);
+};
+svg.onpointerdown = ev => { if (cfg.mode !== 'sim') return; drag = true; auto = false; svg.setPointerCapture(ev.pointerId); move(ev); };
+svg.onpointermove = ev => drag && move(ev);
+svg.onpointerup = svg.onpointercancel = () => { drag = false; };
+
+const dlg = $('#dlg'), form = $('#form');
+$('#cfgBtn').onclick = () => { ['url', 'watt', 'hold'].forEach(k => form.elements[k].value = cfg[k]); dlg.showModal(); };
+dlg.onclose = () => {
+  if (dlg.returnValue !== 'ok') return;
+  Object.assign(cfg, { url: form.elements.url.value.trim(), watt: +form.elements.watt.value, hold: +form.elements.hold.value });
+  save(); e = { used: 0, base: 0 };
+  if (cfg.mode === 'live') connect();
+  paint();
+};
+
+resetZones();
+if (cfg.mode === 'live') { fk.show = false; connect(); }
+paint();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
