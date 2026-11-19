@@ -49,4 +49,22 @@ assert.strictEqual(sim({ topic: '' }), '010');                          // tick:
 assert.strictEqual(sim({ topic: 'kho/cmd/mode', payload: 'on' }), '111');
 assert.strictEqual(sim({ topic: 'kho/cmd/mode', payload: 'off' }), '000');
 assert.strictEqual(sim({ topic: 'kho/cmd/mode', payload: 'auto' }), '010');
+// f7/f8: cau noi Wokwi (HiveMQ) <-> kho/*
+const W = 'huit-khobai-nht/';
+assert.strictEqual(run('f7', { topic: W + 'khu1/chedo', payload: 'AUTO' }), null);   // topic khong lien quan
+let z = run('f7', { topic: W + 'khu2/pir', payload: 1 });                            // mqtt in auto-detect: "1" -> so 1
+assert.deepStrictEqual([z.topic, z.payload], ['kho/zone/B', { pir: 1, on: 0 }]);
+z = run('f7', { topic: W + 'khu2/den', payload: 'ON' });
+assert.deepStrictEqual(z.payload, { pir: 1, on: 1 });                                // nho pir cua lan truoc
+assert.strictEqual(run('f7', { topic: W + 'khu3/den', payload: 'ON' }).topic, 'kho/zone/C');
+assert.strictEqual(run('f7', { topic: W + 'trangthai', payload: 'online' }).topic, 'kho/status');
+assert.strictEqual(ctx.wokwiOn, true);
+assert.deepStrictEqual(run('f6', { topic: '' }), null);                              // Wokwi online -> sim im lang
+run('f7', { topic: W + 'trangthai', payload: 'offline' });
+assert.notStrictEqual(run('f6', { topic: '' }), null);                               // Wokwi offline -> sim chay lai
+const cmds = run('f8', { payload: 'on' })[0];
+assert.deepStrictEqual(cmds.map(c => c.topic + '=' + c.payload),
+  [1, 2, 3].map(n => W + 'khu' + n + '/lenh=ON'));
+assert.strictEqual(run('f8', { payload: 'x' }), null);
+
 console.log('OK');

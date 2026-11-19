@@ -50,6 +50,8 @@ Mở file `dashboard.html` bằng trình duyệt (bấm đúp). Trang kết nố
 
 Cần máy tính có Internet vì trang nạp thư viện `mqtt.js` từ CDN.
 
+**Giao diện bản đồ kho (`index.html`) cũng nối được với Wokwi:** mở file, bấm **Live MQTT**. Mặc định trang nối `wss://broker.hivemq.com:8884/mqtt`, nghe cả topic Wokwi (`huit-khobai-nht/...`) lẫn topic Node-RED (`kho/...`). Nếu bạn đổi `PREFIX` trong `src/main.cpp` thì đổi hằng `PREFIX` ở đầu script của `index.html`. Nút Tự động / Bật hết / Tắt hết gửi lệnh cho cả 3 khu.
+
 ### 2.4 Cấu hình cần chú ý
 
 | Mục | File | Ghi chú |
@@ -149,6 +151,22 @@ Trang minh họa kho bằng bản đồ động, có hai chế độ:
 
 - **Mô phỏng:** kéo xe nâng trên bản đồ, không cần phần cứng hay broker. Mở bằng cách bấm đúp `index.html`.
 - **Live MQTT:** nối broker qua **WebSocket** (mặc định `ws://localhost:9001`, đổi trong Cài đặt). `start.sh` hiện chỉ mở TCP 1883, nên muốn dùng chế độ này cần bật thêm cổng WebSocket cho broker (chưa kiểm chứng trong repo này).
+
+### 3.6 Nối Wokwi vào Node-RED và Blynk (cầu nối)
+
+Flow Node-RED có sẵn một cầu nối nên **Wokwi (bản A) đẩy dữ liệu được vào Node-RED Dashboard và Blynk** mà không cần sửa firmware:
+
+```
+Wokwi -> broker.hivemq.com (huit-khobai-nht/#) -> Node-RED -> kho/zone/*, kho/status -> Dashboard + Blynk
+Dashboard/Blynk -> kho/cmd/mode -> Node-RED -> huit-khobai-nht/khuN/lenh -> Wokwi
+```
+
+Cách demo: chạy `./start.sh`, chạy Wokwi, bấm PIR trong mô phỏng, rồi xem `http://localhost:1880/ui` và app Blynk.
+
+- Node-RED chỉ cần Internet để nối tới `broker.hivemq.com:1883`; Wokwi không cần tới broker cục bộ.
+- Khi Wokwi báo `online`, node "xe nâng giả" tự tắt để không ghi đè dữ liệu thật. Wokwi `offline` thì xe nâng giả chạy lại.
+- Nếu đổi `PREFIX` trong `src/main.cpp`, đổi cả chuỗi `huit-khobai-nht` trong node `mW`, `f7`, `f8` của flow.
+- Chạy `node node-red/test.js` để kiểm thử logic cầu nối. Chưa chạy thử đầy đủ với Wokwi và Node-RED thật trong repo này.
 
 ## 4. Sự cố thường gặp
 

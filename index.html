@@ -149,7 +149,7 @@ dialog .row{margin-top:var(--s5);justify-content:flex-end}
 <dialog id="dlg">
   <form method="dialog" id="form">
     <h1>Cài đặt</h1>
-    <label>Broker MQTT (WebSocket)<input name="url" placeholder="ws://localhost:9001" required></label>
+    <label>Broker MQTT (WebSocket)<input name="url" placeholder="wss://broker.hivemq.com:8884/mqtt" required></label>
     <label>Công suất mỗi khu (W)<input name="watt" type="number" min="1" required></label>
     <label>Thời gian giữ đèn – chế độ mô phỏng (giây)<input name="hold" type="number" min="1" required></label>
     <div class="row"><button class="btn" value="cancel" formnovalidate>Hủy</button><button class="btn" style="background:var(--primary);color:var(--primary-ink)" value="ok">Lưu</button></div>
@@ -160,10 +160,11 @@ dialog .row{margin-top:var(--s5);justify-content:flex-end}
 <script>
 const $ = s => document.querySelector(s);
 const ZN = ['A', 'B', 'C'], PIN = [[34, 25], [35, 26], [32, 27]];
+const PREFIX = 'huit-khobai-nht';                     // phải trùng PREFIX trong src/main.cpp (Wokwi)
 const ZW = 300, SY = 122, RANGE = 170;                // bề rộng khu, vị trí PIR, tầm PIR (đơn vị SVG)
 const lim = (v, a, b) => Math.min(b, Math.max(a, v));
 // ponytail: cấu hình lưu localStorage, hỏng thì dùng mặc định
-const cfg = { url: 'ws://localhost:9001', watt: 150, hold: 3, mode: 'sim', ...(() => { try { return JSON.parse(localStorage.kho) } catch { return {} } })() };
+const cfg = { url: 'wss://broker.hivemq.com:8884/mqtt', watt: 150, hold: 3, mode: 'sim', ...(() => { try { return JSON.parse(localStorage.kho) } catch { return {} } })() };
 const save = () => { try { localStorage.kho = JSON.stringify(cfg) } catch {} };
 
 let zs, cmd = 'auto', auto = true, esp = null, conn = 'off', client = null;
@@ -239,13 +240,16 @@ function connect() {
   disconnect();
   conn = 'wait'; esp = null;
   client = mqtt.connect(cfg.url, { reconnectPeriod: 3000, connectTimeout: 5000, clientId: 'web-' + Math.random().toString(16).slice(2, 8) });
-  client.on('connect', () => { conn = 'ok'; client.subscribe('kho/#', { qos: 1 }); log('Đã kết nối broker ' + cfg.url); });
+  client.on('connect', () => { conn = 'ok'; client.subscribe(['kho/#', PREFIX + '/#'], { qos: 1 }); log('Đã kết nối broker ' + cfg.url); });
   client.on('reconnect', () => { conn = 'wait'; });
   client.on('close', () => { if (conn === 'ok') log('Mất kết nối broker', 'err'); conn = 'wait'; });
   client.on('error', er => { conn = 'err'; log('Lỗi MQTT: ' + er.message, 'err'); });
   client.on('message', (t, p) => {
     const s = p.toString();
     if (t === 'kho/status') { esp = s === 'online'; log('ESP32 ' + (esp ? 'online' : 'OFFLINE'), esp ? '' : 'err'); return; }
+    if (t === PREFIX + '/trangthai') { esp = s === 'online'; log('ESP32 (Wokwi) ' + (esp ? 'online' : 'OFFLINE'), esp ? '' : 'err'); return; }
+    const w = t.match(new RegExp('^' + PREFIX + '/khu([1-3])/(pir|den)$'));  // giao thức Wokwi: pir=1|0, den=ON|OFF
+    if (w) { const i = w[1] - 1, z = zs[i]; w[2] === 'pir' ? setZ(i, s === '1', z.on) : setZ(i, z.pir, s === 'ON'); return; }
     const m = t.match(/^kho\/zone\/([ABC])$/);
     if (!m) return;
     try { const j = JSON.parse(s); setZ(m[1].charCodeAt(0) - 65, !!+j.pir, !!+j.on); } catch { log('Payload lỗi ở ' + t + ': ' + s, 'err'); }
@@ -304,7 +308,10 @@ document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => b.datase
 document.querySelectorAll('[data-cmd]').forEach(b => b.onclick = () => {
   cmd = b.dataset.cmd;
   if (cfg.mode === 'live') {
-    if (client && conn === 'ok') client.publish('kho/cmd/mode', cmd, { qos: 1 }); else log('Chưa kết nối broker – không gửi được lệnh', 'err');
+    if (client && conn === 'ok') {
+      client.publish('kho/cmd/mode', cmd, { qos: 1 });  // Node-RED
+      for (let n = 1; n <= 3; n++) client.publish(`${PREFIX}/khu${n}/lenh`, cmd.toUpperCase(), { qos: 1 });  // Wokwi
+    } else log('Chưa kết nối broker – không gửi được lệnh', 'err');
   }
   log('Chế độ đèn: ' + b.textContent); paint();
 });

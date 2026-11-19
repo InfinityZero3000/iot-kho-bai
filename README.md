@@ -22,6 +22,7 @@ PIR x3 -> ESP32 -> MQTT broker -> Node-RED -> Blynk App / Dashboard
 | `node-red/` | Bản B: flow Node-RED, script chạy broker, kiểm thử logic |
 | `index.html`, `mqtt.min.js` | Bản B: trang minh họa bản đồ kho, có chế độ mô phỏng và live |
 | `docs/CAI-DAT.md` | **Hướng dẫn cài đặt và cấu hình chi tiết** |
+| `docs/KIEM-THU-VA-DANH-GIA.md` | Kết quả kiểm thử, mức tiết kiệm điện, BOM, hạn chế, hướng phát triển |
 | `docs/*.pptx` | Slide thuyết trình |
 
 ## Chạy nhanh bản A (Wokwi)
@@ -38,4 +39,5 @@ Chi tiết, bản B và xử lý sự cố: xem [docs/CAI-DAT.md](docs/CAI-DAT.m
 ## Trạng thái
 
 - Logic flow Node-RED có kiểm thử: `node node-red/test.js`.
-- Firmware và mô phỏng Wokwi chưa được kiểm chứng chạy đầy đủ trong repo này.
+- Cả hai firmware build thành công; cầu nối Wokwi ↔ Node-RED đã thử với HiveMQ và Node-RED thật.
+- Mô phỏng Wokwi, Blynk và hiển thị trên giao diện chưa được kiểm chứng. Chi tiết: [docs/KIEM-THU-VA-DANH-GIA.md](docs/KIEM-THU-VA-DANH-GIA.md).
