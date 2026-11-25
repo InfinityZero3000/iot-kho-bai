@@ -150,7 +150,7 @@ Nếu thiếu `BLYNK_TOKEN`, node Blynk trong flow hiện trạng thái đỏ "t
 Trang minh họa kho bằng bản đồ động, có hai chế độ:
 
 - **Mô phỏng:** kéo xe nâng trên bản đồ, không cần phần cứng hay broker. Mở bằng cách bấm đúp `index.html`.
-- **Live MQTT:** nối broker qua **WebSocket** (mặc định `ws://localhost:9001`, đổi trong Cài đặt). `start.sh` hiện chỉ mở TCP 1883, nên muốn dùng chế độ này cần bật thêm cổng WebSocket cho broker (chưa kiểm chứng trong repo này).
+- **Live MQTT:** nối broker qua **WebSocket** (mặc định `wss://broker.hivemq.com:8884/mqtt`, đổi trong Cài đặt). Muốn nối broker cục bộ thì `start.sh` phải mở thêm cổng WebSocket vì hiện chỉ mở TCP 1883 (chưa kiểm chứng trong repo này).
 
 ### 3.6 Nối Wokwi vào Node-RED và Blynk (cầu nối)
 
